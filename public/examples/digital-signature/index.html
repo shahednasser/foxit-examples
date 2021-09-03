@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Signature with Foxit</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no">
+  <!-- default(white), black, black-translucent -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-touch-fullscreen" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Foxit PDF SDK for Web">
+  <meta name="App-Config" content="fullscreen=yes,useHistoryState=no,transition=no">
+  <meta name="format-detaction" content="telephone=no,email=no">
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="HandheldFriendly" content="true">
+  <meta name="MobileOptimized" content="750">
+  <meta name="screen-orientation" content="portrait">
+  <meta name="x5-orientation" content="portrait">
+  <meta name="full-screen" content="yes">
+  <meta name="x5-fullscreen" content="true">
+  <meta name="browsermode" content="application">
+  <meta name="x5-page-mode" content="app">
+  <meta name="msapplication-tap-highlight" content="no">
+  <meta name="renderer" content="webkit">
+
+  <link rel="stylesheet" href="/lib/UIExtension.css">
+  <script src="/lib/adaptive.js"></script>
+</head>
+<body>
+  <div id="pdf"></div>
+  <script src="/license-key.js"></script>
+  <script src="/lib/UIExtension.full.js"></script>
+  <script src="/lib/preload-jr-worker.js"></script>
+  <script>
+
+    const readyWorker = preloadJrWorker({
+        workerPath: '/lib/',
+        enginePath: '/lib/jr-engine/gsdk',
+        licenseSN: licenseSN,
+        licenseKey: licenseKey
+    });
+
+    const pdfui = new UIExtension.PDFUI({
+        viewerOptions: {
+            libPath: '/lib',
+            jr: {
+                readyWorker: readyWorker
+            }
+        },
+        renderTo: '#pdf',
+        appearance: UIExtension.appearances.adaptive,
+        addons: UIExtension.PDFViewCtrl.DeviceInfo.isMobile ?
+            '/lib/uix-addons/allInOne.mobile.js':
+            '/lib/uix-addons/allInOne.js'
+    });
+
+    //open a ready file
+    pdfui.openPDFByHttpRangeRequest({
+            range: {
+                url: '/Sample.pdf',
+            }
+        }, { fileName: 'Sample.pdf' });
+
+    pdfui.registerSignHandler({
+        filter: 'Adobe.PPKLite',
+        subfilter: 'adbe.pkcs7.sha1',
+        flag: 0x100,
+        distinguishName: 'e=support@yourcompany.com',
+        location: 'FZ',
+        reason: 'Test',
+        signer: 'web sdk',
+        showTime: true,
+        sign: function(setting, buffer) {
+
+            const formData = new FormData();
+            formData.append('plain', new Blob([buffer]));
+
+            return fetch('https://webviewer-demo.foxitsoftware.com/signature/digest_and_sign', {
+              method: 'POST',
+              body: formData
+            }).then((response) => response.arrayBuffer());
+        }
+    });
+
+    pdfui.setVerifyHandler(function (signatureField, plainBuffer, signedData){
+      const formData = new FormData();
+      formData.append('filter', signatureField.getFilter());
+      formData.append('subfilter', signatureField.getSubfilter());
+      formData.append('signer', signatureField.getSigner());
+      formData.append('plainContent', new Blob([plainBuffer]));
+      formData.append('signedData', new Blob([signedData]));
+      
+      return fetch('https://webviewer-demo.foxitsoftware.com/signature/verify', {
+              method: 'POST',
+              body: formData
+            }).then((response) => response.text());
+    });
+  </script>
+</body>
+</html>

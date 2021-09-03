@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foxit Viewer</title>
+</head>
+<body>
+  <input type="file" name="pdf" id="pdf_input" />
+  <div id="pdf"></div>
+  <script src="/license-key.js"></script>
+  <script src="/lib/PDFViewCtrl.full.js"></script>
+  <script>
+    const fileInput = document.getElementById("pdf_input");
+
+    const pdfViewer = new PDFViewCtrl.PDFViewer({
+        libPath: '/lib',
+        jr: {
+            licenseSN: licenseSN,
+            licenseKey: licenseKey,
+            tileSize: 300,
+        },
+    });
+    pdfViewer.init('#pdf');
+
+    function decodePDF (e) {
+      pdfViewer.openPDFByFile(fileInput.files[0]);
+    }
+
+    fileInput.addEventListener('change', decodePDF);
+  </script>
+</body>
+</html>
